@@ -35,7 +35,7 @@ Return ONLY valid JSON in this exact shape:
   "characters": [
     {
       "name": "character name, excluding Narrator unless narrator is visible",
-      "role": one of ["male","female","child","villain","narrator"],
+      "role": one of ["male","female","child","villain","narrator","monster","demon","ghost","robot","alien","spirit","entity"],
       "appearance": "consistent visual description: age, face, hair, clothing, distinguishing details",
       "portrait_prompt": "cinematic portrait prompt for this character, no text, no watermark, expressive face, matching story genre"
     }
@@ -43,20 +43,20 @@ Return ONLY valid JSON in this exact shape:
   "lines": [
     {
       "speaker": "Narrator" or character name,
-      "role": one of ["narrator","male","female","child","villain"],
+      "role": one of ["narrator","male","female","child","villain","monster","demon","ghost","robot","alien","spirit","entity"],
       "text": "the spoken line. Use natural, dramatic spoken language with punctuation that helps performance: ellipses for hesitation, short broken sentences for fear, exclamation only when truly needed. Do not include bracketed stage directions in text.",
       "emotion": "specific actable emotion, e.g. shocked whisper, breaking grief, restrained panic, suspicious calm, trembling dread, fragile joy, angry disbelief",
-      "voice_instruction": "very specific delivery direction for TTS: start/end volume, pace, breath, pauses, tension, and how the emotion changes during the line. Use words like whisper, gasp, trembling, breathless, tearful, stunned, warm, urgent, furious when appropriate.",
-      "expression": "visible facial/body expression for the player, e.g. wide-eyed shock, tearful restraint, forced smile, furious stare",
-      "visual_prompt": "short visual shot prompt for this exact line: who is visible, expression, lighting, camera angle, background. NO readable text.",
+      "voice_instruction": "very specific delivery direction for TTS: start/end volume, pace, breath, pauses, tension, and how the emotion changes during the line. Include natural acting behavior such as a shaky inhale, swallowed words, nervous laugh, tearful crack, sudden gasp, furious breath, or relieved exhale when appropriate.",
+      "expression": "visible facial/body expression for the player, e.g. wide-eyed shock, tearful restraint, forced smile, furious stare, trembling fear, radiant relief",
+      "visual_prompt": "short graphic-novel panel prompt for this exact line: who is visible, the exact facial expression and body language, lighting, camera angle, background. NO readable text.",
       "pause_after_ms": integer 400-1800 (longer BEFORE a shock -- silence sells surprise)
     }
   ],
   "sound_events": [
     {
       "line_index": integer index of the line this sound should start near,
-      "offset_ms": integer offset from the start of that line, usually 0-2500,
-      "prompt": "short ElevenLabs SFX prompt, e.g. 'three sharp knocks on an old wooden cellar door', 'single distant thunder crack', 'wet footsteps on stone path'",
+      "offset_ms": integer offset from the start of that line, usually -900 to 2500. Use negative offsets when the sound should happen just before the line,
+      "prompt": "short ElevenLabs SFX prompt, e.g. 'three sharp knocks on an old wooden cellar door', 'single distant thunder crack', 'wet footsteps on stone path', 'deep wet monster breathing close to the microphone, no words'",
       "duration_ms": integer 1200-6000,
       "gain_db": integer -12 to -3
     }
@@ -68,12 +68,18 @@ Rules:
 - Include at least 3 dramatic turns: hesitation, discovery, confrontation, confession, or shock.
 - Vary emotion and pacing between lines; avoid flat neutral delivery.
 - Every voice_instruction must be actable and concrete. Bad: 'sad'. Good: 'start as a low exhausted whisper, voice almost breaking on the last word, then hold a half-second silence.'
+- For fear, joy, anger, grief, and shock, make the acting physically believable: describe breath, throat tension, trembling, smile in voice, broken cadence, swallowed words, or sudden silence. Avoid generic labels.
+- Dialogue should sound like real people under pressure: use contractions, fragments, interruptions, and imperfect breath-sized phrases. Avoid polished essay sentences.
 - Give emotional lines room to breathe: use short phrases, commas, ellipses, and pauses instead of long formal sentences.
 - Narrator should sound like a storyteller inside the scene, not a newsreader.
+- If a non-human being speaks, make its role non-human, e.g. monster, demon, ghost, robot, alien, spirit, or entity. Its dialogue must not feel like a regular person reading lines: add growls, wet breath, inhuman pauses, metallic cadence, whispering echo, ancient weight, or predatory restraint as appropriate.
+- Non-human lines need voice_instruction that explicitly describes the creature sound and acting style, e.g. "huge chest resonance, gravelly growl under each word, predatory pauses, not a normal human voice."
+- Non-human characters need portrait_prompt and visual_prompt that make the body/face clearly non-human.
 - Create a character entry for every speaking character except generic Narrator. Keep character appearance consistent across the whole scene.
-- Every non-narrator line must include expression and visual_prompt. Narrator lines should include a shot prompt for the environment or the person being described.
+- Every non-narrator line must include expression and visual_prompt that visibly shows that line's feeling. If the line is scared, the panel must show fear; if angry, the panel must show anger; if joyful, the panel must show joy. Narrator lines should include a shot prompt for the environment or the person being described.
 - If the premise mentions rain, crowds, wind, machines, fire, doors, footsteps, temples, radios, forests, etc., those sounds MUST appear in ambience_prompt.
-- Add 2-5 sound_events for important one-off sounds that must be heard clearly: knocks, thunder cracks, doors, footsteps, glass breaking, radios, screams in distance, weapons, magic bursts. Do not put continuous rain/wind/crowd bed in sound_events; that belongs in ambience_prompt.
+- Add 3-7 sound_events for important one-off sounds that must be heard clearly: knocks, thunder cracks, doors, footsteps, glass breaking, radios, screams in distance, weapons, magic bursts. Do not put continuous rain/wind/crowd bed in sound_events; that belongs in ambience_prompt.
+- If there is a monster, demon, ghost, alien, spirit, robot, or entity, include at least 2 nonverbal creature/entity sound_events such as wet breathing, throat growl, spectral inhale, metallic servo twitch, wing scrape, claws on stone, or roar. These must say "no words" or "no dialogue" in the prompt.
 - Time sound_events around the script. Example: a knock should happen just before a character reacts to it; thunder can hit after a shocking line.
 - Keep 'role' consistent per character.`;
 
@@ -107,11 +113,11 @@ export async function directScene(prompt: string): Promise<DirectedScene> {
     }));
   scene.sound_events = (scene.sound_events || [])
     .filter((event) => event.prompt && Number.isFinite(event.line_index))
-    .slice(0, 5)
+    .slice(0, 7)
     .map((event) => ({
       ...event,
       line_index: Math.min(Math.max(Math.round(event.line_index), 0), scene.lines.length - 1),
-      offset_ms: Math.min(Math.max(Math.round(event.offset_ms || 0), 0), 4000),
+      offset_ms: Math.min(Math.max(Math.round(event.offset_ms || 0), -1200), 4000),
       duration_ms: Math.min(Math.max(Math.round(event.duration_ms || 3000), 1200), 6000),
       gain_db: Math.min(Math.max(Math.round(event.gain_db ?? -7), -12), -3),
     }));

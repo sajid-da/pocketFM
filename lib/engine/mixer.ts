@@ -90,7 +90,7 @@ export async function mixScene(
   const sfxFilters = sfxClips.map((sfx, i) => {
     const inputIndex = i + 2;
     const startMs = Math.max(0, (lineStartMs[sfx.lineIndex] || 0) + sfx.offsetMs);
-    return `[${inputIndex}:a]volume=${sfx.gainDb}dB,adelay=${startMs}|${startMs},apad=whole_dur=${total.toFixed(2)}[sfx${i}]`;
+    return `[${inputIndex}:a]volume=${sfx.gainDb}dB,afade=t=in:st=0:d=0.04,alimiter=limit=0.9,adelay=${startMs}|${startMs},apad=whole_dur=${total.toFixed(2)}[sfx${i}]`;
   });
   const mixInputs = ["[voice]", "[amb]", ...sfxClips.map((_, i) => `[sfx${i}]`)].join("");
   const filterComplex = [

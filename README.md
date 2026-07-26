@@ -7,7 +7,7 @@ and an in-app Creator flow — you never leave the app.
 ## What it does
 Type a premise → the app generates a full 30–60s audio-drama scene:
 - **Script + direction** — OpenAI (structured, performable, per-line emotion)
-- **Voices** — OpenAI TTS (distinct voice per character, emotion per line)
+- **Voices** — ElevenLabs TTS only, with emotion tags and role-based voices
 - **Cover art** — OpenAI image API (cinematic poster per scene, shown on cards)
 - **Atmosphere** — ElevenLabs sound-generation (looping ambience bed)
 - **Mix** — ffmpeg stitches voices with pauses and ducks the ambience under them
@@ -22,6 +22,27 @@ OpenAI SDK · ElevenLabs REST · ffmpeg (system binary)
 - Node 18+
 - **ffmpeg** installed and on PATH (`ffmpeg -version` to check)
 - OpenAI + ElevenLabs API keys
+
+## Voice setup
+ElevenLabs is the recommended speech engine for emotional acting.
+
+```bash
+OPENAI_API_KEY=...
+ELEVENLABS_API_KEY=...
+ELEVENLABS_TTS_MODEL=eleven_v3
+ELEVENLABS_TTS_FALLBACK_MODEL=eleven_multilingual_v2
+ELEVENLABS_OUTPUT_FORMAT=mp3_44100_128
+```
+
+Optional voice overrides:
+
+```bash
+ELEVENLABS_NARRATOR_VOICE_ID=...
+ELEVENLABS_MALE_VOICE_ID=...
+ELEVENLABS_FEMALE_VOICE_ID=...
+ELEVENLABS_VILLAIN_VOICE_ID=...
+ELEVENLABS_MONSTER_VOICE_ID=...
+```
 
 ## Run
 ```bash
