@@ -1,5 +1,5 @@
 ﻿import OpenAI from "openai";
-import type { SceneLine } from "../types";
+import type { SceneCharacter, SceneLine } from "../types";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 export const SCENE_MODEL = process.env.SCENE_MODEL || "gpt-4o";
@@ -9,6 +9,7 @@ export interface DirectedScene {
   mood: string;
   ambience_prompt: string;
   cover_prompt: string;
+  characters?: SceneCharacter[];
   lines: SceneLine[];
   sound_events?: SoundEvent[];
 }
@@ -31,6 +32,14 @@ Return ONLY valid JSON in this exact shape:
   "mood": "one or two words, e.g. tense, eerie, tender",
   "ambience_prompt": "detailed ElevenLabs sound-generation prompt for a CONTINUOUS loopable background sound bed. Include every environmental sound implied by the script, e.g. heavy rain, tin roof, distant thunder, wet footsteps, old wood creaking. Keep it steady and loopable, with no music and no voices.",
   "cover_prompt": "a cinematic movie-poster image description for this scene: setting, mood, lighting, atmosphere. NO text, NO letters, NO watermarks. Dramatic, film-still quality.",
+  "characters": [
+    {
+      "name": "character name, excluding Narrator unless narrator is visible",
+      "role": one of ["male","female","child","villain","narrator"],
+      "appearance": "consistent visual description: age, face, hair, clothing, distinguishing details",
+      "portrait_prompt": "cinematic portrait prompt for this character, no text, no watermark, expressive face, matching story genre"
+    }
+  ],
   "lines": [
     {
       "speaker": "Narrator" or character name,
@@ -38,6 +47,8 @@ Return ONLY valid JSON in this exact shape:
       "text": "the spoken line. Use natural, dramatic spoken language with punctuation that helps performance: ellipses for hesitation, short broken sentences for fear, exclamation only when truly needed. Do not include bracketed stage directions in text.",
       "emotion": "specific actable emotion, e.g. shocked whisper, breaking grief, restrained panic, suspicious calm, trembling dread, fragile joy, angry disbelief",
       "voice_instruction": "very specific delivery direction for TTS: start/end volume, pace, breath, pauses, tension, and how the emotion changes during the line. Use words like whisper, gasp, trembling, breathless, tearful, stunned, warm, urgent, furious when appropriate.",
+      "expression": "visible facial/body expression for the player, e.g. wide-eyed shock, tearful restraint, forced smile, furious stare",
+      "visual_prompt": "short visual shot prompt for this exact line: who is visible, expression, lighting, camera angle, background. NO readable text.",
       "pause_after_ms": integer 400-1800 (longer BEFORE a shock -- silence sells surprise)
     }
   ],
@@ -59,6 +70,8 @@ Rules:
 - Every voice_instruction must be actable and concrete. Bad: 'sad'. Good: 'start as a low exhausted whisper, voice almost breaking on the last word, then hold a half-second silence.'
 - Give emotional lines room to breathe: use short phrases, commas, ellipses, and pauses instead of long formal sentences.
 - Narrator should sound like a storyteller inside the scene, not a newsreader.
+- Create a character entry for every speaking character except generic Narrator. Keep character appearance consistent across the whole scene.
+- Every non-narrator line must include expression and visual_prompt. Narrator lines should include a shot prompt for the environment or the person being described.
 - If the premise mentions rain, crowds, wind, machines, fire, doors, footsteps, temples, radios, forests, etc., those sounds MUST appear in ambience_prompt.
 - Add 2-5 sound_events for important one-off sounds that must be heard clearly: knocks, thunder cracks, doors, footsteps, glass breaking, radios, screams in distance, weapons, magic bursts. Do not put continuous rain/wind/crowd bed in sound_events; that belongs in ambience_prompt.
 - Time sound_events around the script. Example: a knock should happen just before a character reacts to it; thunder can hit after a shocking line.
@@ -80,8 +93,18 @@ export async function directScene(prompt: string): Promise<DirectedScene> {
     l.role ||= "narrator";
     l.emotion ||= "cinematic tension";
     l.voice_instruction ||= "acted audio-drama performance with natural breath, emotional emphasis, and varied pace";
+    l.expression ||= l.emotion || "cinematic focus";
+    l.visual_prompt ||= `${l.speaker} ${l.expression}, cinematic close-up, ${scene.mood} mood`;
     l.pause_after_ms = Math.min(Math.max(l.pause_after_ms || 700, 400), 1800);
   });
+  scene.characters = (scene.characters || [])
+    .filter((character) => character.name && character.portrait_prompt)
+    .slice(0, 6)
+    .map((character) => ({
+      ...character,
+      role: character.role || "default",
+      appearance: character.appearance || character.portrait_prompt,
+    }));
   scene.sound_events = (scene.sound_events || [])
     .filter((event) => event.prompt && Number.isFinite(event.line_index))
     .slice(0, 5)

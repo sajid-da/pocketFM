@@ -27,6 +27,7 @@ function isScene(value: unknown): value is Scene {
     typeof value.cover_url === "string" &&
     typeof value.audio_url === "string" &&
     typeof value.created_at === "number" &&
+    (value.characters === undefined || (Array.isArray(value.characters) && value.characters.every(isSceneCharacter))) &&
     Array.isArray(value.lines) &&
     value.lines.every(isSceneLine)
   );
@@ -40,7 +41,21 @@ function isSceneLine(value: unknown) {
     optionalString(value.role) &&
     optionalString(value.emotion) &&
     optionalString(value.voice_instruction) &&
+    optionalString(value.expression) &&
+    optionalString(value.visual_prompt) &&
+    optionalString(value.portrait_url) &&
     (value.pause_after_ms === undefined || typeof value.pause_after_ms === "number")
+  );
+}
+
+function isSceneCharacter(value: unknown) {
+  if (!isRecord(value)) return false;
+  return (
+    typeof value.name === "string" &&
+    optionalString(value.role) &&
+    typeof value.appearance === "string" &&
+    typeof value.portrait_prompt === "string" &&
+    optionalString(value.portrait_url)
   );
 }
 

@@ -2,7 +2,7 @@ import { promises as fs } from "fs";
 import path from "path";
 import { randomUUID } from "crypto";
 import { directScene } from "./director";
-import { performLine, generateCover } from "./media";
+import { performLine, generateCharacterPortrait, generateCover } from "./media";
 import { generateAmbience, generateSoundEffect } from "./atmosphere";
 import { assertAudioToolsAvailable, mixScene } from "./mixer";
 import type { Scene } from "../types";
@@ -34,6 +34,12 @@ export async function produceScene(prompt: string): Promise<Scene> {
   const ambiencePath = path.join(workDir, "ambience.mp3");
   const ambiencePromise = generateAmbience(directed.ambience_prompt, ambiencePath, 22);
   const coverPromise = generateCover(directed.cover_prompt, MEDIA_DIR, id);
+  const portraitPromise = Promise.all(
+    (directed.characters || []).map(async (character, i) => ({
+      ...character,
+      portrait_url: await generateCharacterPortrait(character, MEDIA_DIR, id, i),
+    }))
+  );
   const sfxPromise = Promise.all(
     (directed.sound_events || []).map(async (event, i) => {
       const sfxPath = path.join(workDir, `sfx_${i}.mp3`);
@@ -50,6 +56,11 @@ export async function produceScene(prompt: string): Promise<Scene> {
   await Promise.all([voicePromise, ambiencePromise]);
   const sfxClips = await sfxPromise;
   const coverUrl = await coverPromise;
+  const characters = await portraitPromise;
+  const portraitBySpeaker = new Map(characters.map((character) => [character.name.toLowerCase(), character.portrait_url || ""]));
+  directed.lines.forEach((line) => {
+    line.portrait_url = portraitBySpeaker.get(line.speaker.toLowerCase()) || coverUrl;
+  });
 
   // 3. Mix
   const finalPath = path.join(MEDIA_DIR, `scene_${id}.mp3`);
@@ -64,6 +75,7 @@ export async function produceScene(prompt: string): Promise<Scene> {
     mood: directed.mood,
     ambience: directed.ambience_prompt,
     cover_url: coverUrl,
+    characters,
     lines: directed.lines,
     audio_url: `/media/scene_${id}.mp3`,
     created_at: Date.now(),

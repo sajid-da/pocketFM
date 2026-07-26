@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 import { promises as fs } from "fs";
 import path from "path";
-import type { SceneLine } from "../types";
+import type { SceneCharacter, SceneLine } from "../types";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 const TTS_MODEL = process.env.TTS_MODEL || "gpt-4o-mini-tts";
@@ -76,5 +76,27 @@ export async function generateCover(coverPrompt: string, outDir: string, id: str
     return `/media/cover_${id}.png`;
   } catch {
     return ""; // cover is a nice-to-have; never fail the whole scene on it
+  }
+}
+
+export async function generateCharacterPortrait(character: SceneCharacter, outDir: string, sceneId: string, index: number): Promise<string> {
+  try {
+    const res = await openai.images.generate({
+      model: IMAGE_MODEL,
+      prompt: [
+        character.portrait_prompt,
+        character.appearance,
+        "Cinematic vertical character portrait, expressive face, dramatic lighting, no text, no letters, no watermark.",
+      ].join(" "),
+      size: "1024x1024",
+      n: 1,
+    });
+    const b64 = res.data?.[0]?.b64_json;
+    if (!b64) return "";
+    const file = path.join(outDir, `portrait_${sceneId}_${index}.png`);
+    await fs.writeFile(file, Buffer.from(b64, "base64"));
+    return `/media/portrait_${sceneId}_${index}.png`;
+  } catch {
+    return "";
   }
 }
