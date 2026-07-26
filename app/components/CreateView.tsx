@@ -16,9 +16,10 @@ const SEEDS = [
 const STAGES = [
   "Directing a 60-second scene",
   "Writing emotional voice directions",
+  "Designing character portraits",
   "Performing each line with feeling",
   "Generating ElevenLabs ambience",
-  "Mixing voices, pauses, and atmosphere",
+  "Mixing voices, effects, and atmosphere",
 ];
 
 export function CreateView({ onGenerated }: { onGenerated: (s: Scene) => void }) {
@@ -65,7 +66,7 @@ export function CreateView({ onGenerated }: { onGenerated: (s: Scene) => void })
                 <h1 className="text-[clamp(44px,6vw,76px)] font-black leading-[.9] text-white">Create a Story</h1>
               </div>
               <p className="max-w-[360px] text-[14px] leading-6 text-white/62">
-                Build a short scene with voice performance, sound bed, cover art, and a finished mix.
+                Build a short scene with voice performance, sound bed, cover art, character frames, and a finished mix.
               </p>
             </div>
 
@@ -112,7 +113,7 @@ export function CreateView({ onGenerated }: { onGenerated: (s: Scene) => void })
               {[
                 [Mic2, "Voice cast", "Role-aware narration and character delivery"],
                 [Radio, "Atmosphere", "Loopable ambience shaped around the scene"],
-                [ImageIcon, "Poster art", "A cinematic cover for the finished story"],
+                [ImageIcon, "Visual storyboard", "Cover art plus character images beside the dialogue"],
               ].map(([Icon, title, body]) => (
                 <div key={String(title)} className="rounded bg-white/7 p-4 ring-1 ring-white/10">
                   <div className="mb-2 flex items-center gap-3 text-sm font-black text-white">

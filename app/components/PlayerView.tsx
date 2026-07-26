@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Radio } from "lucide-react";
+import { ArrowLeft, ImageIcon, MessageSquareText, Radio } from "lucide-react";
 import type { Scene } from "@/lib/types";
 import { moodGradient } from "@/lib/api";
 import { Waveform } from "./Waveform";
@@ -35,7 +35,7 @@ export function PlayerView({ scene, onBack }: { scene: Scene; onBack: () => void
             <ArrowLeft size={15} /> Back to home
           </button>
 
-          <div className="grid grid-cols-[minmax(0,1fr)_430px] gap-7 max-[1040px]:grid-cols-1">
+          <div className="grid grid-cols-[minmax(0,1fr)_480px] gap-7 max-[1100px]:grid-cols-1">
             <section className="glass-panel rounded p-7">
               <div className="mb-4 inline-flex items-center gap-2 rounded bg-[#e50914] px-3 py-1 text-[11px] font-black uppercase tracking-[2px] text-white">
                 <Radio size={14} /> Visual Story
@@ -61,19 +61,11 @@ export function PlayerView({ scene, onBack }: { scene: Scene; onBack: () => void
                 onEnded={() => setPlaying(false)}
               />
 
-              <div className="mt-7 rounded bg-black/32 p-5 ring-1 ring-white/10">
-                <div className="mb-2 text-[12px] font-black uppercase tracking-[2px] text-[#e50914]">{activeLine?.speaker || "Narrator"}</div>
-                <p className="text-[24px] font-black leading-snug text-white max-[680px]:text-[19px]">{activeLine?.text}</p>
-                {activeLine?.expression && (
-                  <div className="mt-4 inline-flex rounded bg-white/10 px-3 py-1 text-[11px] font-black uppercase tracking-[1.5px] text-white/72 ring-1 ring-white/10">
-                    {activeLine.expression}
-                  </div>
-                )}
-              </div>
+              <ActiveDialogue line={activeLine} mood={scene.mood} />
             </section>
 
             <aside className="glass-panel overflow-hidden rounded">
-              <div className="relative h-[560px] max-[1040px]:h-[460px]">
+              <div className="relative h-[560px] max-[1100px]:h-[460px]">
                 {visualUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <motion.img
@@ -89,6 +81,9 @@ export function PlayerView({ scene, onBack }: { scene: Scene; onBack: () => void
                   <div className="poster-fallback h-full w-full" />
                 )}
                 <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_35%,rgba(0,0,0,.86)_100%)]" />
+                <div className="absolute left-4 top-4 inline-flex items-center gap-2 rounded bg-black/58 px-3 py-[7px] text-[11px] font-black uppercase tracking-[1.8px] text-white/72 ring-1 ring-white/10 backdrop-blur">
+                  <ImageIcon size={14} /> Generated Frame
+                </div>
                 <div className="absolute inset-x-0 bottom-0 p-5">
                   <div className="text-[13px] font-black uppercase tracking-[2px] text-white/52">{activeLine?.emotion || scene.mood}</div>
                   <div className="mt-1 text-[30px] font-black leading-none text-white">{activeLine?.speaker || "Scene"}</div>
@@ -97,15 +92,32 @@ export function PlayerView({ scene, onBack }: { scene: Scene; onBack: () => void
             </aside>
           </div>
 
-          <section className="mt-8 grid gap-3">
+          <section className="mt-8">
+            <div className="mb-4 flex items-center gap-3 text-[12px] font-black uppercase tracking-[2px] text-white/46">
+              <MessageSquareText size={16} className="text-[#e50914]" /> Dialogue Storyboard
+            </div>
+            <div className="grid gap-3">
             {scene.lines.map((l, i) => {
               const active = i === Math.max(activeIndex, 0);
+              const thumbUrl = l.portrait_url || scene.cover_url;
               return (
                 <motion.div key={i} initial={{ opacity: 0, x: -14 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.15 + i * 0.04, duration: 0.35 }}
-                  className="glass-panel grid grid-cols-[120px_minmax(0,1fr)] gap-4 rounded p-4 transition max-[680px]:grid-cols-1"
+                  className="glass-panel grid grid-cols-[86px_120px_minmax(0,1fr)] gap-4 rounded p-4 transition max-[760px]:grid-cols-[72px_minmax(0,1fr)]"
                   style={{ borderColor: active ? "rgba(229,9,20,.7)" : "rgba(255,255,255,.1)", boxShadow: active ? "0 0 0 1px rgba(229,9,20,.35), 0 18px 70px rgba(229,9,20,.12)" : undefined }}>
-                  <div className="text-[13.5px] font-black text-white">{l.speaker}</div>
-                  <div>
+                  <div className="relative h-[86px] overflow-hidden rounded bg-white/7 ring-1 ring-white/10 max-[760px]:h-[72px]">
+                    {thumbUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={thumbUrl} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <div className="poster-fallback h-full w-full" />
+                    )}
+                    {active && <div className="absolute inset-0 ring-2 ring-inset ring-[#e50914]" />}
+                  </div>
+                  <div className="max-[760px]:col-start-2">
+                    <div className="text-[13.5px] font-black text-white">{l.speaker}</div>
+                    <div className="mt-1 text-[11px] font-bold uppercase tracking-[1.4px] text-white/42">{l.role || "voice"}</div>
+                  </div>
+                  <div className="max-[760px]:col-span-2">
                     <div className="text-[15px] leading-7 text-white/84">{l.text}</div>
                     {(l.expression || l.emotion) && (
                       <span className="mt-3 inline-block rounded bg-[#e50914]/14 px-[10px] py-1 text-[10.5px] font-bold uppercase tracking-wide text-red-100 ring-1 ring-[#e50914]/25">{l.expression || l.emotion}</span>
@@ -114,10 +126,31 @@ export function PlayerView({ scene, onBack }: { scene: Scene; onBack: () => void
                 </motion.div>
               );
             })}
+            </div>
           </section>
         </div>
       </div>
     </motion.div>
+  );
+}
+
+function ActiveDialogue({ line, mood }: { line: Scene["lines"][number] | undefined; mood: string }) {
+  return (
+    <div className="mt-7 grid grid-cols-[132px_minmax(0,1fr)] overflow-hidden rounded bg-black/32 ring-1 ring-white/10 max-[680px]:grid-cols-1">
+      <div className="border-r border-white/10 bg-white/[.04] p-5 max-[680px]:border-b max-[680px]:border-r-0">
+        <div className="text-[11px] font-black uppercase tracking-[2px] text-white/42">Now Speaking</div>
+        <div className="mt-3 text-[18px] font-black leading-tight text-white">{line?.speaker || "Narrator"}</div>
+        <div className="mt-3 inline-flex rounded bg-[#e50914]/16 px-3 py-1 text-[10.5px] font-black uppercase tracking-[1.5px] text-red-100 ring-1 ring-[#e50914]/25">
+          {line?.expression || line?.emotion || mood}
+        </div>
+      </div>
+      <div className="p-5">
+        <p className="text-[24px] font-black leading-snug text-white max-[680px]:text-[19px]">{line?.text}</p>
+        {line?.visual_prompt && (
+          <p className="mt-4 line-clamp-2 text-[12.5px] leading-5 text-white/42">{line.visual_prompt}</p>
+        )}
+      </div>
+    </div>
   );
 }
 
