@@ -8,8 +8,9 @@ import { assertAudioToolsAvailable, mixScene } from "./mixer";
 import type { Scene } from "../types";
 import type { DirectedScene, SoundEvent } from "./director";
 
-// Public media dir served at /media (see next.config + route)
-const MEDIA_DIR = path.join(process.cwd(), "public", "media");
+// Runtime-generated media must be served by the app route in deployment.
+// Some hosts do not reliably serve files written into /public after build.
+export const MEDIA_DIR = process.env.MEDIA_DIR || path.join(process.cwd(), "data", "media");
 const NON_HUMAN_ROLES = new Set(["monster", "demon", "ghost", "robot", "alien", "spirit", "entity"]);
 
 function isNonHumanRole(role = "", speaker = "") {

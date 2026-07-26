@@ -127,6 +127,43 @@ function run(cmd: string, args: string[]): Promise<void> {
   });
 }
 
+function escapeSvg(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+async function writeFallbackGraphic(outDir: string, filename: string, mood: string, expression = "") {
+  const seed = `${mood}${expression}` || "EchoVerse";
+  const hue = Math.abs([...seed].reduce((sum, char) => sum + char.charCodeAt(0), 0)) % 360;
+  const title = escapeSvg(`${mood} ${expression}`.trim() || "story frame");
+  const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="hsl(${hue}, 72%, 20%)"/>
+      <stop offset="0.58" stop-color="#111"/>
+      <stop offset="1" stop-color="hsl(${(hue + 36) % 360}, 82%, 34%)"/>
+    </linearGradient>
+    <pattern id="dots" width="18" height="18" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.5" fill="rgba(255,255,255,.28)"/>
+    </pattern>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#g)"/>
+  <rect width="1024" height="1024" fill="url(#dots)" opacity=".42"/>
+  <path d="M86 790 C250 520 354 820 520 496 C676 188 780 438 944 128 L944 944 L86 944 Z" fill="rgba(0,0,0,.55)"/>
+  <path d="M166 164 C336 70 594 76 804 210 C696 198 606 246 522 334 C410 224 294 166 166 164 Z" fill="rgba(255,255,255,.1)"/>
+  <rect x="34" y="34" width="956" height="956" fill="none" stroke="#000" stroke-width="26"/>
+  <rect x="58" y="58" width="908" height="908" fill="none" stroke="rgba(255,255,255,.36)" stroke-width="5"/>
+  <title>${title}</title>
+</svg>`;
+  const file = path.join(outDir, filename);
+  await fs.writeFile(file, svg);
+  return `/media/${filename}`;
+}
+
 async function applyNonHumanVoiceEffect(line: SceneLine, outPath: string): Promise<void> {
   const role = (line.role || "").toLowerCase();
   const rawPath = outPath.replace(/\.mp3$/i, "_raw.mp3");
@@ -167,12 +204,12 @@ export async function generateCover(coverPrompt: string, outDir: string, id: str
       n: 1,
     });
     const b64 = res.data?.[0]?.b64_json;
-    if (!b64) return "";
+    if (!b64) return writeFallbackGraphic(outDir, `cover_${id}.svg`, coverPrompt);
     const file = path.join(outDir, `cover_${id}.png`);
     await fs.writeFile(file, Buffer.from(b64, "base64"));
     return `/media/cover_${id}.png`;
   } catch {
-    return ""; // cover is a nice-to-have; never fail the whole scene on it
+    return writeFallbackGraphic(outDir, `cover_${id}.svg`, coverPrompt);
   }
 }
 
@@ -189,12 +226,12 @@ export async function generateCharacterPortrait(character: SceneCharacter, outDi
       n: 1,
     });
     const b64 = res.data?.[0]?.b64_json;
-    if (!b64) return "";
+    if (!b64) return writeFallbackGraphic(outDir, `portrait_${sceneId}_${index}.svg`, character.role || "character", character.appearance);
     const file = path.join(outDir, `portrait_${sceneId}_${index}.png`);
     await fs.writeFile(file, Buffer.from(b64, "base64"));
     return `/media/portrait_${sceneId}_${index}.png`;
   } catch {
-    return "";
+    return writeFallbackGraphic(outDir, `portrait_${sceneId}_${index}.svg`, character.role || "character", character.appearance);
   }
 }
 
@@ -221,11 +258,11 @@ export async function generateLineFrame(
       n: 1,
     });
     const b64 = res.data?.[0]?.b64_json;
-    if (!b64) return "";
+    if (!b64) return writeFallbackGraphic(outDir, `frame_${sceneId}_${index}.svg`, sceneMood, line.expression || line.emotion);
     const file = path.join(outDir, `frame_${sceneId}_${index}.png`);
     await fs.writeFile(file, Buffer.from(b64, "base64"));
     return `/media/frame_${sceneId}_${index}.png`;
   } catch {
-    return "";
+    return writeFallbackGraphic(outDir, `frame_${sceneId}_${index}.svg`, sceneMood, line.expression || line.emotion);
   }
 }

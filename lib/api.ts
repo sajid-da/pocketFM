@@ -23,7 +23,10 @@ export async function generateScene(prompt: string): Promise<Scene> {
       body: JSON.stringify({ prompt }),
       signal: controller.signal,
     });
-    const data = await res.json();
+    const contentType = res.headers.get("content-type") || "";
+    const data = contentType.includes("application/json")
+      ? await res.json()
+      : { error: `Server returned ${res.status} instead of JSON. Check deployment logs and environment variables.` };
     if (!res.ok || data.error) throw new Error(data.error || "Generation failed.");
     return data as Scene;
   } catch (e) {
